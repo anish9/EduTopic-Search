@@ -10,5 +10,8 @@ def view_chapter(request):
     receive_req = request.GET.get("chapter")
     if receive_req.lower() == "trignometry":
         return render(request,'chapters/trigs.html')
+    if receive_req.lower() == "algebra":
+        return render(request,'chapters/algeb.html')
+
     else:
         return HttpResponse("Topic Not Found")
