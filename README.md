@@ -6,3 +6,7 @@
 
 ## Demo:
 ![alt text](https://github.com/anish9/Course-Engine/blob/main/demo_prev.png)
+
+## Preview Search Topics:
+* Algebra
+* Trignometry
