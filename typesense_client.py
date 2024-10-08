@@ -57,3 +57,19 @@ search_parameters = {
 results = client.collections['machinedata'].documents.search(search_parameters)
 
 print(results["hits"])
+
+
+# limit = 5
+# query = "zero tolerance in a array"
+# search_parameters = {
+#         'q': query,
+#         'query_by': "short description,name",  # This tells Typesense to search in all fields
+#         'per_page': limit,
+#         'prefix': True,  # Enable prefix matching
+#         'num_typos': 3, #Allow up to 2 typos for fuzzy matching
+#         'exhaustive_search': True,
+#         'typo_tolerance_enabled': True,
+#         "split_join_tokens": True,
+#         "sort_by": "_text_match:desc",
+#         "text_match_type":"sum_score"
+#     }
