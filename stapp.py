@@ -190,3 +190,54 @@ st.markdown("""
         <p>Powered by Python's difflib SequenceMatcher Algorithm</p>
     </div>
 """, unsafe_allow_html=True)
+
+
+########################################## bar chart ############################################
+import plotly.graph_objects as go
+# Create the bar chart with Plotly
+fig = go.Figure()
+
+fig.add_trace(go.Bar(
+    x=y,
+    y=x,
+    text=x,
+    textposition='outside',
+    texttemplate='%{text}%',
+    marker=dict(
+        color=x,
+        colorscale='Viridis',
+        showscale=False,
+        line=dict(color='rgba(255,255,255,0.8)', width=2)
+    ),
+    hovertemplate='<b>%{x}</b><br>Confidence: %{y}%<extra></extra>'
+))
+
+# Update layout for aesthetics
+fig.update_layout(
+    title=dict(
+        text='Confidence Distribution',
+        font=dict(size=20, color='#2c3e50')
+    ),
+    xaxis=dict(
+        title='Categories',
+        titlefont=dict(size=14, color='#34495e'),
+        tickfont=dict(size=12),
+        showgrid=False
+    ),
+    yaxis=dict(
+        title='Confidence Score (%)',
+        titlefont=dict(size=14, color='#34495e'),
+        tickfont=dict(size=12),
+        range=[0, 100],
+        showgrid=True,
+        gridcolor='rgba(200,200,200,0.3)'
+    ),
+    plot_bgcolor='rgba(240,242,245,0.5)',
+    paper_bgcolor='white',
+    height=500,
+    margin=dict(t=80, b=60, l=60, r=40),
+    hovermode='x'
+)
+
+# Display the chart
+st.plotly_chart(fig, use_container_width=True)
