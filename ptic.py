@@ -41,3 +41,45 @@ def compute_name_similarity(name1, name2, match_mode='approx'):
 
     avg_similarity = total_similarity / max_len  # Average over max_len positions (extra tokens count as 0)
     return avg_similarity                        # Final 0–1 similarity score for the two full names
+
+
+
+
+from abydos.phonetic import BeiderMorse
+
+
+def compute_name_similarity(name1: str, name2: str, match_mode: str = "approx") -> float:
+    """Simple BM-based name similarity using only encoding overlaps."""
+    bm = BeiderMorse(match_mode=match_mode)      # Beider–Morse encoder
+
+    tokens1 = name1.split()                      # assume already lowercased + sorted upstream
+    tokens2 = name2.split()
+    len1, len2 = len(tokens1), len(tokens2)
+
+    if len1 == 0 and len2 == 0:                  # no names at all
+        return 0.0
+
+    max_tokens = max(len1, len2)                 # how many token positions the longer name has
+    min_tokens = min(len1, len2)                 # how many positions we can actually compare
+
+    total = 0.0                                  # sum of per-token similarities
+
+    for i in range(min_tokens):                  # compare only slots both names have
+        t1, t2 = tokens1[i], tokens2[i]
+
+        enc1 = bm.encode(t1).split()             # list of BM encodings for token1
+        enc2 = bm.encode(t2).split()             # list of BM encodings for token2
+
+        if not enc1 and not enc2:                # no encodings on both sides
+            token_sim = 0.0
+        else:
+            set1, set2 = set(enc1), set(enc2)    # treat as sets (duplicates removed)
+            matches = len(set1 & set2)           # how many encodings are exactly shared
+            max_len = max(len(set1), len(set2))  # size of the "bigger" encoding list
+            token_sim = matches / max_len if max_len > 0 else 0.0
+
+        total += token_sim                       # accumulate token similarity
+
+    # Extra tokens on the longer name are implicitly 0 similarity
+    return total / max_tokens                    # average over all token slots of the longer name
+
