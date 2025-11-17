@@ -1,105 +1,43 @@
-from abydos.phonetic import BeiderMorse
-from abydos.distance import Levenshtein
+from abydos.phonetic import BeiderMorse          # Phonetic encoder (Beider-Morse)
+from abydos.distance import Levenshtein          # Levenshtein distance with .sim() in [0,1]
+
 
 def compute_name_similarity(name1, name2, match_mode='approx'):
-    """
-    Compute similarity between two full names using Beider-Morse phonetic encoding.
-    
-    Args:
-        name1: First name string
-        name2: Second name string
-        match_mode: 'approx' for approximate, 'exact' for exact matching
-    
-    Returns:
-        float: Similarity score between 0 and 1
-    """
-    bm = BeiderMorse(match_mode=match_mode)
-    lev = Levenshtein()
-    
-    # Tokenize names into components
-    tokens1 = name1.lower().split()
-    tokens2 = name2.lower().split()
-    
-    # Handle different length names
-    max_len = max(len(tokens1), len(tokens2))
-    min_len = min(len(tokens1), len(tokens2))
-    
-    total_similarity = 0
-    
-    # Compare each token position
-    for i in range(max_len):
-        if i < len(tokens1) and i < len(tokens2):
-            token1 = tokens1[i]
-            token2 = tokens2[i]
-            
-            # Get phonetic encodings
-            encodings1 = set(bm.encode(token1).split())
-            encodings2 = set(bm.encode(token2).split())
-            
-            # Method 1: Check for exact phonetic overlap
-            if encodings1.intersection(encodings2):
-                token_sim = 1.0
+    bm = BeiderMorse(match_mode=match_mode)      # Create a Beider-Morse encoder with chosen mode
+    lev = Levenshtein()                          # Create a Levenshtein similarity object
+
+    tokens1 = name1.split()                      # Assume name1 is already preprocessed; split into tokens
+    tokens2 = name2.split()                      # Same for name2; split into tokens
+
+    max_len = max(len(tokens1), len(tokens2))    # Max token count; used as denominator later
+    if max_len == 0:                             # If both names are empty
+        return 0.0                               # Return 0 similarity for empty input
+
+    total_similarity = 0.0                       # Accumulator for per-position token similarities
+
+    for i in range(max_len):                     # Iterate over each token position up to the longest name
+        if i < len(tokens1) and i < len(tokens2):    # Only compare if both names have a token at this index
+            t1, t2 = tokens1[i], tokens2[i]      # Current token pair at position i
+
+            enc1 = set(bm.encode(t1).split())    # Phonetic encodings for token1 as a set of codes
+            enc2 = set(bm.encode(t2).split())    # Phonetic encodings for token2 as a set of codes
+
+            if enc1 and enc2:                    # Only compute overlap if both sets are non-empty
+                inter = enc1 & enc2              # Intersection of phonetic code sets
+                union = enc1 | enc2              # Union of phonetic code sets
+                overlap_score = len(inter) / len(union)  # Jaccard-like overlap of phonetic sets
             else:
-                # Method 2: Find best similarity among all encoding pairs
-                max_sim = 0
-                for e1 in encodings1:
-                    for e2 in encodings2:
-                        sim = lev.sim(e1, e2)
-                        max_sim = max(max_sim, sim)
-                token_sim = max_sim
-            
-            total_similarity += token_sim
-        else:
-            # Penalty for missing tokens
-            total_similarity += 0
-    
-    # Average similarity across all token positions
-    # Penalize for length mismatch
-    length_penalty = min_len / max_len
-    avg_similarity = (total_similarity / max_len) * length_penalty
-    
-    return avg_similarity
+                overlap_score = 0.0              # If one side has no encodings, no overlap
 
+            max_sim = 0.0                        # Best Levenshtein similarity between any encoding pair
+            for e1 in enc1:                      # Loop over all encodings from token1
+                for e2 in enc2:                  # Loop over all encodings from token2
+                    max_sim = max(max_sim, lev.sim(e1, e2))  # Keep the highest similarity seen
 
-# Example usage
-name1 = "anjane s varkey"
-name2 = "anjana s marimuthu"
+            token_sim = max(overlap_score * 1.2, max_sim)    # Prefer exact/strong phonetic overlap (boosted)
+            token_sim = min(token_sim, 1.0)      # Cap token similarity at 1.0
+            total_similarity += token_sim        # Add this token’s contribution to the total
+        # If only one side has a token at this index, we add nothing (implicit 0 similarity for that slot)
 
-similarity = compute_name_similarity(name1, name2)
-print(f"Name 1: {name1}")
-print(f"Name 2: {name2}")
-print(f"Similarity Score: {similarity:.4f}")
-print()
-
-# Show token-by-token comparison
-bm = BeiderMorse()
-tokens1 = name1.lower().split()
-tokens2 = name2.lower().split()
-
-print("Token-by-token phonetic encodings:")
-print("-" * 60)
-for i in range(max(len(tokens1), len(tokens2))):
-    if i < len(tokens1):
-        enc1 = bm.encode(tokens1[i])
-        print(f"Token {i+1} (Name 1): '{tokens1[i]}' -> {enc1}")
-    if i < len(tokens2):
-        enc2 = bm.encode(tokens2[i])
-        print(f"Token {i+1} (Name 2): '{tokens2[i]}' -> {enc2}")
-    print()
-
-# Test with more examples
-print("\n" + "="*60)
-print("Additional Examples:")
-print("="*60)
-
-test_cases = [
-    ("anjane s varkey", "anjana s marimuthu"),
-    ("john smith", "jon smyth"),
-    ("christopher brown", "kristopher browne"),
-    ("robert johnson", "roberto gonzalez"),
-]
-
-for n1, n2 in test_cases:
-    sim = compute_name_similarity(n1, n2)
-    print(f"\n'{n1}' vs '{n2}'")
-    print(f"Similarity: {sim:.4f}")
+    avg_similarity = total_similarity / max_len  # Average over max_len positions (extra tokens count as 0)
+    return avg_similarity                        # Final 0–1 similarity score for the two full names
